@@ -1,26 +1,33 @@
-// import postgres from 'postgres';
+import mysql from "mysql2/promise";
+import dotenv from "dotenv";
 
-// const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+dotenv.config();
 
-// async function listInvoices() {
-// 	const data = await sql`
-//     SELECT invoices.amount, customers.name
-//     FROM invoices
-//     JOIN customers ON invoices.customer_id = customers.id
-//     WHERE invoices.amount = 666;
-//   `;
+const connection = await mysql.createConnection({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USER,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_NAME,
+});
 
-// 	return data;
-// }
+async function listInvoices() {
+  const [rows] = await connection.query(`
+    SELECT invoices.amount, customers.name
+    FROM invoices
+    JOIN customers ON invoices.customer_id = customers.id
+    WHERE invoices.amount = 666;
+  `);
+
+  return rows;
+}
 
 export async function GET() {
-  return Response.json({
-    message:
-      'Uncomment this file and remove this line. You can delete this file when you are finished.',
-  });
-  // try {
-  // 	return Response.json(await listInvoices());
-  // } catch (error) {
-  // 	return Response.json({ error }, { status: 500 });
-  // }
+  try {
+    const data = await listInvoices();
+    return new Response(JSON.stringify(data), { status: 200 });
+  } catch (error) {
+    return new Response(JSON.stringify({ error }), { status: 500 });
+  } finally {
+    await connection.end();
+  }
 }
