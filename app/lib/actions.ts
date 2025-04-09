@@ -33,6 +33,19 @@ const CreateInvoiceFormSchema = CreateInvoiceSchema.omit({
   date: true,
 });
 
+const UpdateInvoiceSchema = z.object({
+  id: z.string(),
+  customerId: z.string(),
+  amount: z.coerce.number().positive(),
+  status: z.enum(["paid", "pending"]),
+  date: z.string(),
+});
+
+const UpdateInvoiceFormSchema = CreateInvoiceSchema.omit({
+  id: true,
+  date: true,
+});
+
 export async function createInvoice(formData: FormData) {
   const { customerId, amount, status } = CreateInvoiceFormSchema.parse({
     customerId: formData.get("customerId"),
@@ -61,4 +74,45 @@ export async function createInvoice(formData: FormData) {
 
   revalidatePath("/dashboard/invoices/create"); //Revalidamos la ruta para que se actualice la cache de la pagina
   redirect("/dashboard/invoices"); //Redirigimos a la pagina de facturas
+}
+
+export async function updateInvoice(id: string, formData: FormData) {
+  const { customerId, amount, status } = UpdateInvoiceFormSchema.parse({
+    customerId: formData.get("customerId"),
+    amount: formData.get("amount"),
+    status: formData.get("status"),
+  });
+
+  //Transformamos para evitar errores de redondeo
+  const amountInCents = amount * 100; // Convert to cents
+
+  try {
+    // Realizamos la consulta para actualizar la factura en la base de datos
+    await connection.query(
+      `
+      UPDATE invoices
+      SET customer_id = ?, amount = ?, status = ?
+      WHERE id = ?
+    `,
+      [customerId, amountInCents, status, id]
+    );
+  } catch (error) {
+    console.error("Database Error:", error);
+    throw new Error("Failed to update invoice.");
+  }
+
+  revalidatePath(`/dashboard/invoices`); //Revalidamos la ruta para que se actualice la cache de la pagina
+  redirect("/dashboard/invoices"); //Redirigimos a la pagina de facturas
+}
+
+export async function deleteInvoice(id: string) {
+  try {
+    // Realizamos la consulta para eliminar la factura en la base de datos
+    await connection.query(`DELETE FROM invoices WHERE id = ?`, [id]);
+  } catch (error) {
+    console.error("Database Error:", error);
+    throw new Error("Failed to delete invoice.");
+  }
+
+  revalidatePath(`/dashboard/invoices`); //Revalidamos la ruta para que se actualice la cache de la pagina
 }
