@@ -10,6 +10,7 @@ const connection = await mysql.createConnection({
   user: process.env.MYSQL_USER,
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_NAME,
+  port: Number(process.env.MYSQL_PORT),
 });
 
 async function seedUsers() {
@@ -101,7 +102,7 @@ async function seedCustomers() {
 async function seedRevenue() {
   await connection.query(`
     CREATE TABLE IF NOT EXISTS revenue (
-      month VARCHAR(4) NOT NULL UNIQUE,
+      month VARCHAR(4) NOT NULL PRIMARY KEY,
       revenue INT NOT NULL
     );
   `);

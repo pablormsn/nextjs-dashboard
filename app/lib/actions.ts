@@ -13,6 +13,7 @@ const connection = await mysql.createConnection({
   user: process.env.MYSQL_USER,
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_NAME,
+  port: Number(process.env.MYSQL_PORT),
 });
 
 //VALIDAcion de los datos del formulario
@@ -106,6 +107,7 @@ export async function updateInvoice(id: string, formData: FormData) {
 }
 
 export async function deleteInvoice(id: string) {
+  throw new Error("Failed to Delete invoice.");
   try {
     // Realizamos la consulta para eliminar la factura en la base de datos
     await connection.query(`DELETE FROM invoices WHERE id = ?`, [id]);
