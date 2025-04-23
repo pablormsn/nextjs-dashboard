@@ -29,42 +29,14 @@ export function UpdateInvoice({ id }: { id: string }) {
 }
 
 export function DeleteInvoice({ id }: { id: string }) {
-  const [notification, setNotification] = useState<string | null>(null);
-
-  const deleteInvoiceWithId = async () => {
-    try {
-      await deleteInvoice(id); // Llama a la función para eliminar la factura
-      setNotification(`Invoice with ID ${id} has been deleted successfully!`); // Muestra el mensaje en el frontend
-    } catch (error) {
-      console.error("Failed to delete invoice:", error);
-      setNotification("An error occurred while deleting the invoice."); // Muestra un mensaje de error
-    }
-
-    // Oculta la notificación después de 3 segundos
-    setTimeout(() => setNotification(null), 3000);
-  };
+  const deleteInvoiceWithId = deleteInvoice.bind(null, id);
 
   return (
-    <div>
-      {notification && (
-        <div className="fixed top-4 right-4 rounded-md bg-green-100 p-4 shadow-md">
-          <p className="text-sm text-green-800">{notification}</p>
-        </div>
-      )}
-      <form
-        onSubmit={(e) => {
-          e.preventDefault(); // Evita que el formulario recargue la página
-          deleteInvoiceWithId();
-        }}
-      >
-        <button
-          type="submit"
-          className="rounded-md border p-2 hover:bg-gray-100"
-        >
-          <span className="sr-only">Delete</span>
-          <TrashIcon className="w-5" />
-        </button>
-      </form>
-    </div>
+    <form action={deleteInvoiceWithId}>
+      <button type="submit" className="rounded-md border p-2 hover:bg-gray-100">
+        <span className="sr-only">Delete</span>
+        <TrashIcon className="w-5" />
+      </button>
+    </form>
   );
 }

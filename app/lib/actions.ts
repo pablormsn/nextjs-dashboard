@@ -21,9 +21,15 @@ const connection = await mysql.createConnection({
 //z.object crea un objeto con las propiedades que le pasamos como argumento
 const CreateInvoiceSchema = z.object({
   id: z.string(),
-  customerId: z.string(),
-  amount: z.coerce.number().positive(),
-  status: z.enum(["paid", "pending"]),
+  customerId: z.string({
+    invalid_type_error: "Please select a customer.",
+  }),
+  amount: z.coerce.number().positive({
+    message: "Please enter a valid amount (greater than Zero).",
+  }),
+  status: z.enum(["paid", "pending"], {
+    invalid_type_error: "Please select a status.",
+  }),
   date: z.string(),
 });
 
@@ -36,9 +42,15 @@ const CreateInvoiceFormSchema = CreateInvoiceSchema.omit({
 
 const UpdateInvoiceSchema = z.object({
   id: z.string(),
-  customerId: z.string(),
-  amount: z.coerce.number().positive(),
-  status: z.enum(["paid", "pending"]),
+  customerId: z.string({
+    invalid_type_error: "Please select a customer.",
+  }),
+  amount: z.coerce.number().positive({
+    message: "Please enter a valid amount (greater than Zero).",
+  }),
+  status: z.enum(["paid", "pending"], {
+    invalid_type_error: "Please select a status.",
+  }),
   date: z.string(),
 });
 
@@ -47,17 +59,35 @@ const UpdateInvoiceFormSchema = CreateInvoiceSchema.omit({
   date: true,
 });
 
-export async function createInvoice(formData: FormData) {
-  const { customerId, amount, status } = CreateInvoiceFormSchema.parse({
+export type State = {
+  errors?: {
+    customerId?: string[];
+    amount?: string[];
+    status?: string[];
+  };
+  message?: string | null;
+};
+
+export async function createInvoice(prevState: State, formData: FormData) {
+  const validatedFields = CreateInvoiceFormSchema.safeParse({
     customerId: formData.get("customerId"),
     amount: formData.get("amount"),
     status: formData.get("status"),
   });
 
   //Transformamos para evitar errores de redondeo
-  const amountInCents = amount * 100; // Convert to cents
+  const amountInCents = validatedFields.success ? validatedFields.data.amount * 100 : 0; // Convert to cents
+  const customerId = validatedFields.success ? validatedFields.data.customerId : null;
+  const status = validatedFields.success ? validatedFields.data.status : null;
   //Creamos la fecha de hoy 2023-10-25
   const [date] = new Date().toISOString().split("T");
+
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: "Please fill in all required fields.",
+    };
+  }
 
   try {
     // Realizamos la consulta para insertar la factura en la base de datos
@@ -108,6 +138,7 @@ export async function updateInvoice(id: string, formData: FormData) {
 
 export async function deleteInvoice(id: string) {
   throw new Error("Failed to Delete invoice.");
+
   try {
     // Realizamos la consulta para eliminar la factura en la base de datos
     await connection.query(`DELETE FROM invoices WHERE id = ?`, [id]);
