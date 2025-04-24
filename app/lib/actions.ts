@@ -7,6 +7,8 @@ import { Invoice } from "./definitions";
 import mysql from "mysql2/promise";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { signIn } from "@/auth";
+import { AuthError } from "next-auth";
 
 const connection = await mysql.createConnection({
   host: process.env.MYSQL_HOST,
@@ -76,8 +78,12 @@ export async function createInvoice(prevState: State, formData: FormData) {
   });
 
   //Transformamos para evitar errores de redondeo
-  const amountInCents = validatedFields.success ? validatedFields.data.amount * 100 : 0; // Convert to cents
-  const customerId = validatedFields.success ? validatedFields.data.customerId : null;
+  const amountInCents = validatedFields.success
+    ? validatedFields.data.amount * 100
+    : 0; // Convert to cents
+  const customerId = validatedFields.success
+    ? validatedFields.data.customerId
+    : null;
   const status = validatedFields.success ? validatedFields.data.status : null;
   //Creamos la fecha de hoy 2023-10-25
   const [date] = new Date().toISOString().split("T");
@@ -148,4 +154,23 @@ export async function deleteInvoice(id: string) {
   }
 
   revalidatePath(`/dashboard/invoices`); //Revalidamos la ruta para que se actualice la cache de la pagina
+}
+
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData
+) {
+  try {
+    await signIn("credentials", formData);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.cause) {
+        case "CredentialsSignin":
+          return "Invalid credentials.";
+        default:
+          return "Something went wrong.";
+      }
+    }
+    throw error;
+  }
 }
